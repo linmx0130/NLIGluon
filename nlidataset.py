@@ -19,7 +19,7 @@ class NLIDataItem:
         pass
         
     def parse_tab_line(self, line:str):
-        fields = line.trip().split("\t")
+        fields = line.strip().split("\t")
         self.gold_label = fields[0]
         self.sentence1 = fields[5]
         self.sentence2 = fields[6]
@@ -49,12 +49,15 @@ class NLIDataset(gdata.SimpleDataset):
         with open(filename) as f:
             raw_data = f.readlines()
         data = []
-        for l in raw_data:
-            item = NLIDataItem()
-            if self.parse_type == "tab":
+        if self.parse_type == "tab":
+            for l in raw_data[1:]:
+                item = NLIDataItem()
                 item.parse_tab_line(l)
-            if self.parse_type == "json":
+                data.append(item)
+        if self.parse_type == "json":
+            for l in raw_data[1:]:
+                item = NLIDataItem()
                 item.parse_json_line(l)
-            data.append(item)
+                data.append(item)
         return data
     
