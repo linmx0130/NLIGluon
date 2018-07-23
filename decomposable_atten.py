@@ -9,25 +9,25 @@ class DecomposableAtten(gluon.Block):
             # attention function
             self.f = nn.Sequential()
             self.f.add(nn.Dense(hidden_size, in_units=inp_size, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.f.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.f.add(nn.Dense(hidden_size, in_units=hidden_size))
             
             # compare function
             self.g = nn.Sequential()
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size * 2, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size))
 
             # predictor
             self.h = nn.Sequential()
             self.h.add(nn.Dense(hidden_size, in_units=hidden_size * 2, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.h.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            self.f.add(nn.Dropout(rate=0.2))
+            # self.f.add(nn.Dropout(rate=0.2))
             self.h.add(nn.Dense(num_class, in_units=hidden_size))
         # extract features
         self.hidden_size = hidden_size

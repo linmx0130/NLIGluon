@@ -15,14 +15,16 @@ class Network(gluon.Block):
         super(Network, self).__init__(**kwargs)
         self.word_embed_size = word_embed_size
         self.hidden_size = hidden_size
-        self.lin_proj = gluon.nn.Dense(hidden_size, in_units=word_embed_size)
-        self.model = DecomposableAtten(hidden_size, hidden_size, 3)
+        with self.name_scope():
+            # self.lin_proj = gluon.nn.Dense(hidden_size, in_units=word_embed_size)
+            self.model = DecomposableAtten(word_embed_size, hidden_size, 3)
 
     def forward(self, sentence1, sentence2):
         B, L1, D = sentence1.shape
         B, L2, D = sentence2.shape
-        s1 = self.lin_proj(sentence1.reshape(B * L1, D)).reshape(B, L1, self.hidden_size)
-        s2 = self.lin_proj(sentence2.reshape(B * L2, D)).reshape(B, L2, self.hidden_size)
+        s1, s2 = sentence1, sentence2
+        # s1 = self.lin_proj(sentence1.reshape(B * L1, D)).reshape(B, L1, self.hidden_size)
+        # s2 = self.lin_proj(sentence2.reshape(B * L2, D)).reshape(B, L2, self.hidden_size)
         pred = self.model(s1, s2)
         return pred
 
@@ -50,7 +52,9 @@ def train_network(model, train_set, embedding, ctx, args):
     if not os.path.exists(args.checkpoints):
         os.mkdir(args.checkpoints)
 
-    for epoch in range(200):
+    checkpoints_path = os.path.join(args.checkpoints, "epoch-0.gluonmodel")
+    model.save_parameters(checkpoints_path)
+    for epoch in range(1, 200):
         access_key = list(range(len(train_set)))
         np.random.shuffle(access_key)        
         idx = 0
@@ -85,7 +89,7 @@ def train_network(model, train_set, embedding, ctx, args):
                 print("Epoch ", epoch, "Loss=",acc_loss.asscalar(), "Acc=", acc_acc.asscalar())
                 counter = print_period
         checkpoints_path = os.path.join(args.checkpoints, "epoch-%d.gluonmodel" % epoch)
-        model.save_params(checkpoints_path)
+        model.save_parameters(checkpoints_path)
         print("Epoch ", epoch, " saved to ", checkpoints_path)
 
 def test_network(model, test_set, embedding, ctx, args):
@@ -131,10 +135,10 @@ if __name__=="__main__":
         model = Network(300, 200)    
         train_network(model, clean_train_set, glove, ctx, args)
     elif args.mode == "test":
-        test_set = prepare_dataset(args, 'test_set')
+        test_set = prepare_dataset(args, 'dev_set')
         ctx = mx.gpu()
         model = Network(300, 200)
-        model.load_params(args.model, ctx=ctx)
+        model.load_parameters(args.model, ctx=ctx)
         test_network(model, test_set, glove, ctx, args)
     else:
         raise NotImplementedError()
