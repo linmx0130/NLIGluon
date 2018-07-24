@@ -16,15 +16,15 @@ class Network(gluon.Block):
         self.word_embed_size = word_embed_size
         self.hidden_size = hidden_size
         with self.name_scope():
-            # self.lin_proj = gluon.nn.Dense(hidden_size, in_units=word_embed_size)
-            self.model = DecomposableAtten(word_embed_size, hidden_size, 3)
+            self.lin_proj = gluon.nn.Dense(hidden_size, in_units=word_embed_size, activation="relu")
+            self.model = DecomposableAtten(hidden_size, hidden_size, 3)
 
     def forward(self, sentence1, sentence2):
         B, L1, D = sentence1.shape
         B, L2, D = sentence2.shape
-        s1, s2 = sentence1, sentence2
-        # s1 = self.lin_proj(sentence1.reshape(B * L1, D)).reshape(B, L1, self.hidden_size)
-        # s2 = self.lin_proj(sentence2.reshape(B * L2, D)).reshape(B, L2, self.hidden_size)
+        # s1, s2 = sentence1, sentence2
+        s1 = self.lin_proj(sentence1.reshape(B * L1, D)).reshape(B, L1, self.hidden_size)
+        s2 = self.lin_proj(sentence2.reshape(B * L2, D)).reshape(B, L2, self.hidden_size)
         pred = self.model(s1, s2)
         return pred
 
@@ -44,7 +44,7 @@ def train_network(model, train_set, embedding, ctx, args):
     model.collect_params().initialize(mx.init.Xavier(), force_reinit=True, ctx=ctx)
     celoss = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(model.collect_params(), 'adagrad',
-                            {'learning_rate': 0.01})
+            {'learning_rate': 0.01, 'wd': 0.0001})
     acc_loss = nd.array([0,])
     acc_acc = nd.array([0,])
     batch_size = args.batch_size
