@@ -2,6 +2,25 @@ import mxnet
 from mxnet import nd, autograd, gluon
 import mxnet.gluon.nn as nn
 
+class IntraSentenceAtten(gluon.Block):
+    def __init__(self, inp_size: int, hidden_size: int, max_length=10, **kwargs):
+        super(IntraSentenceAtten, self).__init__(**kwargs)
+        self.max_length = max_length
+        self.hidden_size = hidden_size
+        with self.name_scope():
+            self.f = nn.Sequential()
+            self.f.add(nn.Dense(hidden_size, in_units=inp_size, activation='relu'))
+            self.f.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
+            self.f.add(nn.Dense(hidden_size, in_units=hidden_size))
+
+    def forward(self, a):
+        B, L, H = a.shape
+        tilde_a = self.f(a.reshape(B*L, H)).reshape(B, L, self.hidden_size)  # shape = [B, L1, H]
+        e = nd.linalg.gemm2(A=tilde_a, B=tilde_a.transpose([0, 2, 1]))
+        alpha = nd.linalg.gemm2(nd.softmax(e), tilde_a)
+        return alpha
+
+
 class DecomposableAtten(gluon.Block):
     def __init__(self, inp_size: int, hidden_size: int, num_class:int, **kwargs):
         super(DecomposableAtten, self).__init__(**kwargs)
@@ -9,25 +28,19 @@ class DecomposableAtten(gluon.Block):
             # attention function
             self.f = nn.Sequential()
             self.f.add(nn.Dense(hidden_size, in_units=inp_size, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.f.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.f.add(nn.Dense(hidden_size, in_units=hidden_size))
             
             # compare function
             self.g = nn.Sequential()
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size * 2, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.g.add(nn.Dense(hidden_size, in_units=hidden_size))
 
             # predictor
             self.h = nn.Sequential()
             self.h.add(nn.Dense(hidden_size, in_units=hidden_size * 2, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.h.add(nn.Dense(hidden_size, in_units=hidden_size, activation='relu'))
-            # self.f.add(nn.Dropout(rate=0.2))
             self.h.add(nn.Dense(num_class, in_units=hidden_size))
         # extract features
         self.hidden_size = hidden_size
